@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -8,43 +9,169 @@
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   <style>
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; font-family: system-ui, sans-serif; }
-    a-scene { position: fixed; inset: 0; width: 100vw; height: 100vh; }
-    a-scene canvas { width: 100% !important; height: 100% !important; }
-    .hint { position: fixed; z-index: 5; top: 1rem; left: 1rem; right: 1rem; padding: .8rem 1rem;
-      color: white; background: #111b; border-radius: .75rem; text-align: center; pointer-events: none; }
-    .arjs-loader { display: none; }
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: system-ui, sans-serif;
+    }
+
+    a-scene {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    a-scene canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .hint {
+      position: fixed;
+      z-index: 5;
+      top: 1rem;
+      left: 1rem;
+      right: 1rem;
+      padding: .8rem 1rem;
+      color: white;
+      background: #111b;
+      border-radius: .75rem;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .arjs-loader {
+      display: none;
+    }
+
+    .hint { transition: opacity .25s ease, transform .25s ease; }
+    .hint.scanning { opacity: .72; }
+    .info-panel {
+      position: fixed;
+      z-index: 5;
+      left: 50%;
+      bottom: max(1rem, env(safe-area-inset-bottom));
+      width: min(30rem, calc(100vw - 2rem));
+      box-sizing: border-box;
+      padding: 1rem 1.15rem;
+      color: #f4fffb;
+      background: linear-gradient(135deg, rgba(5, 23, 20, .92), rgba(8, 16, 18, .86));
+      border: 1px solid rgba(0, 229, 160, .65);
+      border-radius: 1rem;
+      box-shadow: 0 0 28px rgba(0, 229, 160, .14);
+      backdrop-filter: blur(12px);
+      opacity: 0;
+      transform: translate(-50%, 1rem);
+      transition: opacity .35s ease, transform .35s ease;
+      pointer-events: none;
+    }
+    .info-panel.active { opacity: 1; transform: translate(-50%, 0); }
+    .info-panel strong { display: block; margin-bottom: .35rem; color: #00e5a0; letter-spacing: .12em; font-size: .75rem; }
+    .info-panel p { margin: 0; font-size: .88rem; line-height: 1.45; }
+    @media (max-height: 520px) { .info-panel { display: none; } }
   </style>
 </head>
+
 <body>
   <div class="hint" id="status">Iniciando cámara…</div>
+  <aside class="info-panel" id="infoPanel" aria-live="polite">
+    <strong>DESARROLLO CON PROPÓSITO · DESDE 2006</strong>
+    <p>Software a medida, testing automatizado y manual, seguridad e investigación aplicada. Un equipo integrado que acompaña cada etapa del producto.</p>
+  </aside>
 
-  <a-scene
-    mindar-image="imageTargetSrc: ./assets/tarjets.mind; autoStart: false;"
-    color-space="sRGB"
-    renderer="colorManagement: true, physicallyCorrectLights"
-    vr-mode-ui="enabled: false"
+  <a-scene mindar-image="imageTargetSrc: ./assets/tarjets.mind; filterMinCF: 0.00005; filterBeta: 0.01; warmupTolerance: 5; missTolerance: 10; autoStart: false;" color-space="sRGB"
+    renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
     <!-- targetIndex 0 = primera imagen que agregaste al compilador de MindAR. -->
     <a-entity id="cardTarget" mindar-image-target="targetIndex: 0">
-      <!-- El objetivo ocupa aproximadamente 1 unidad de ancho. Ajusta según la relación de aspecto. -->
-      <a-plane width="0.88" height="0.38" position="0 0.05 0.02"
-        material="color: #102a43; opacity: 0.94; shader: flat">
-      </a-plane>
-      <a-text value="¡Hola!\nEsta tarjeta tiene una experiencia AR."
-        color="#ffffff" align="center" width="1.8" position="0 0.05 0.03"></a-text>
-      <a-text value="Edita este texto en index.html"
-        color="#9fe7ff" align="center" width="1.4" position="0 -0.20 0.03"></a-text>
+      <!-- La experiencia queda anclada al marcador de la tarjeta. -->
+      <a-entity id="experience" visible="false">
+        <a-torus id="orbit" radius="0.38" radius-tubular="0.004" position="0 0 0.02"
+          material="color: #00e5a0; shader: flat; opacity: 0.9; transparent: true"></a-torus>
+        <a-torus radius="0.29" radius-tubular="0.0015" position="0 0 0.018"
+          material="color: #5cf2c2; shader: flat; opacity: 0.38; transparent: true"></a-torus>
+        <a-circle radius="0.17" position="0 0 0.025"
+          material="color: #061b19; shader: flat; opacity: 0.96; transparent: true"></a-circle>
+        <a-circle radius="0.17" position="0 0 0.024"
+          material="color: #00e5a0; shader: flat; side: double; transparent: true; opacity: 0.9"
+          geometry="primitive: ring; radiusInner: 0.165; radiusOuter: 0.172"></a-circle>
+        <a-text value="CLAROLAB" color="#ffffff" align="center" anchor="center" width="1.15"
+          position="0 0.025 0.04"></a-text>
+        <a-text value="SOFTWARE WITH SOUL" color="#8fffe0" align="center" anchor="center" width="1.05"
+          position="0 -0.045 0.04"></a-text>
+        <a-text value="DESDE JUNÍN · BUENOS AIRES · AL MUNDO" color="#b8c9c4" align="center" anchor="center" width="1.7"
+          position="0 0.66 0.04"></a-text>
+        <a-text value="DESARROLLO  ·  QA  ·  SEGURIDAD  ·  I+D" color="#8fffe0" align="center" anchor="center" width="1.7"
+          position="0 -0.66 0.04"></a-text>
+
+        <a-entity class="info-node" data-x="0" data-y="0.49">
+          <a-circle radius="0.105" position="0 0 0.035" material="color: #04110f; shader: flat; opacity: 0.96; transparent: true"></a-circle>
+          <a-circle radius="0.105" position="0 0 0.034" geometry="primitive: ring; radiusInner: 0.099; radiusOuter: 0.108" material="color: #00e5a0; shader: flat; side: double"></a-circle>
+          <a-text value="R&D" color="#ffffff" align="center" anchor="center" width="0.8" position="0 0 0.05"></a-text>
+        </a-entity>
+        <a-entity class="info-node" data-x="0.47" data-y="0.12">
+          <a-circle radius="0.105" position="0 0 0.035" material="color: #04110f; shader: flat; opacity: 0.96; transparent: true"></a-circle>
+          <a-circle radius="0.105" position="0 0 0.034" geometry="primitive: ring; radiusInner: 0.099; radiusOuter: 0.108" material="color: #00e5a0; shader: flat; side: double"></a-circle>
+          <a-text value="ALLY" color="#ffffff" align="center" anchor="center" width="0.75" position="0 0 0.05"></a-text>
+        </a-entity>
+        <a-entity class="info-node" data-x="0.29" data-y="-0.40">
+          <a-circle radius="0.105" position="0 0 0.035" material="color: #04110f; shader: flat; opacity: 0.96; transparent: true"></a-circle>
+          <a-circle radius="0.105" position="0 0 0.034" geometry="primitive: ring; radiusInner: 0.099; radiusOuter: 0.108" material="color: #00e5a0; shader: flat; side: double"></a-circle>
+          <a-text value="QA" color="#ffffff" align="center" anchor="center" width="0.72" position="0 0 0.05"></a-text>
+        </a-entity>
+        <a-entity class="info-node" data-x="-0.29" data-y="-0.40">
+          <a-circle radius="0.105" position="0 0 0.035" material="color: #04110f; shader: flat; opacity: 0.96; transparent: true"></a-circle>
+          <a-circle radius="0.105" position="0 0 0.034" geometry="primitive: ring; radiusInner: 0.099; radiusOuter: 0.108" material="color: #00e5a0; shader: flat; side: double"></a-circle>
+          <a-text value="DEV" color="#ffffff" align="center" anchor="center" width="0.72" position="0 0 0.05"></a-text>
+        </a-entity>
+        <a-entity class="info-node" data-x="-0.47" data-y="0.12">
+          <a-circle radius="0.105" position="0 0 0.035" material="color: #04110f; shader: flat; opacity: 0.96; transparent: true"></a-circle>
+          <a-circle radius="0.105" position="0 0 0.034" geometry="primitive: ring; radiusInner: 0.099; radiusOuter: 0.108" material="color: #00e5a0; shader: flat; side: double"></a-circle>
+          <a-text value="SEC" color="#ffffff" align="center" anchor="center" width="0.8" position="0 0 0.05"></a-text>
+        </a-entity>
+      </a-entity>
     </a-entity>
   </a-scene>
   <script>
     const status = document.getElementById('status');
     const scene = document.querySelector('a-scene');
     const target = document.getElementById('cardTarget');
+    const experience = document.getElementById('experience');
+    const infoPanel = document.getElementById('infoPanel');
+    const orbit = document.getElementById('orbit');
+    const nodes = [...document.querySelectorAll('.info-node')];
 
+    function showExperience() {
+      experience.setAttribute('visible', true);
+      infoPanel.classList.add('active');
+      status.textContent = '¡Tarjeta detectada!';
+      status.classList.remove('scanning');
+      orbit.removeAttribute('animation__spin');
+      orbit.setAttribute('animation__spin', 'property: rotation; to: 0 0 360; loop: true; dur: 12000; easing: linear');
+      nodes.forEach((node, index) => {
+        const x = Number(node.dataset.x);
+        const y = Number(node.dataset.y);
+        node.setAttribute('scale', '0.001 0.001 0.001');
+        node.setAttribute('position', `${x * 0.72} ${y * 0.72} 0.025`);
+        node.removeAttribute('animation__enter');
+        node.setAttribute('animation__enter', `property: scale; from: 0.001 0.001 0.001; to: 1 1 1; dur: 520; delay: ${180 + index * 120}; easing: easeOutBack`);
+      });
+    }
+
+    function hideExperience() {
+      experience.setAttribute('visible', false);
+      infoPanel.classList.remove('active');
+      status.textContent = 'Apunta la cámara al frente de la tarjeta';
+      status.classList.add('scanning');
+    }
+    
     // Con autoStart desactivado, registramos todos los eventos antes de iniciar MindAR.
     scene.addEventListener('loaded', async () => {
       const arSystem = scene.systems['mindar-image-system'];
@@ -54,8 +181,8 @@
       scene.addEventListener('arError', () => {
         status.textContent = 'MindAR no pudo iniciar. Revisa cámara y permisos.';
       });
-      target.addEventListener('targetFound', () => { status.textContent = '¡Tarjeta detectada!'; });
-      target.addEventListener('targetLost', () => { status.textContent = 'Apunta la cámara al frente de la tarjeta'; });
+      target.addEventListener('targetFound', showExperience);
+      target.addEventListener('targetLost', hideExperience);
       try {
         status.textContent = 'Iniciando cámara…';
         await arSystem.start();
@@ -66,4 +193,5 @@
     }, { once: true });
   </script>
 </body>
+
 </html>
